@@ -51,9 +51,9 @@ public class Genome {
         genome.get(RandU.getRandint(0, genome.size() - 1))[RandU.getRandint(0, GENE_SIZE - 1)] = RandU.getRandint(0, 1000);
 
         // Каждая компонента цвета изменяется максимум на 10 и ограничивается 0 и 255
-        family = new Color(MathU.clamp(family.getRed() + RandU.getRandint(-3, 3), 0, 255),
-                MathU.clamp(family.getRed() + RandU.getRandint(-3, 3), 0, 255),
-                MathU.clamp(family.getRed() + RandU.getRandint(-3, 3), 0, 255));
+        family = new Color(MathU.clamp(family.getRed() + RandU.getRandint(-10, 10), 0, 255),
+                MathU.clamp(family.getGreen() + RandU.getRandint(-10, 10), 0, 255),
+                MathU.clamp(family.getBlue() + RandU.getRandint(-10, 10), 0, 255));
     }
 
     // Получение значения данного числа в геноме

@@ -13,7 +13,8 @@ public class Main {
     public static void main(String[] args){
         WIDTH = SCREEN_WIDTH / TILE;
         HEIGHT = SCREEN_HEIGHT / TILE;
-        long seed = System.currentTimeMillis();
+//        long seed = System.currentTimeMillis();
+        long seed = 1744289340867l;
         System.out.println("Seed: " + seed);
         RandU.setSeed(seed);
         Drawer.init(SCREEN_WIDTH, SCREEN_HEIGHT, TILE);

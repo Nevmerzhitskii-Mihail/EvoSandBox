@@ -7,6 +7,7 @@ import javafx.util.Pair;
 
 public class Bot {
     public static final int PROTEINS_COUNT = 50;
+    public static final int SYNTESIS_LOOPS = 3;
 
     public int x, y;
     public int dir;
@@ -15,7 +16,7 @@ public class Bot {
     public int salt;
     public int age;
     public int[] efficiency = new int[]{333, 333, 333};
-    public int[][] proteins = new int[2][PROTEINS_COUNT];
+    public int[][] proteins = new int[SYNTESIS_LOOPS][PROTEINS_COUNT];
 
     public Genome genome;
     public int redC = 128, greenC = 128, blueC = 128;
@@ -30,7 +31,7 @@ public class Bot {
     public void step(){
         collectOrganic();
         collectSalt();
-        proteinsSynthesis();
+        for (int i = 0; i < SYNTESIS_LOOPS; i++) proteinsSynthesis(i + 1);
         doAction();
         if (energy <= 0 || age >= 1000) {killBot(); return;}
         energy--;
@@ -59,14 +60,14 @@ public class Bot {
         }
     }
 
-    public void proteinsSynthesis(){
-        System.arraycopy(proteins[1 - World.current_step % 2], 0, proteins[World.current_step % 2], 0, PROTEINS_COUNT);
-        for (int i = 0; i < PROTEINS_COUNT; i++) proteins[World.current_step % 2][i] = MathU.clamp(proteins[World.current_step % 2][i] - 50, 0, 1000);
+    public void proteinsSynthesis(int loop){
+        System.arraycopy(proteins[(loop - 1) % SYNTESIS_LOOPS], 0, proteins[loop % SYNTESIS_LOOPS], 0, PROTEINS_COUNT);
+        for (int i = 0; i < PROTEINS_COUNT; i++) proteins[loop % SYNTESIS_LOOPS][i] = MathU.clamp(proteins[loop % SYNTESIS_LOOPS][i] - 50, 0, 1000);
         for (int i = 0; i < genome.size(); i++){
             boolean cond1 = getOuterCond(genome.get(i, 0), genome.get(i, 1));
-            boolean cond2 = getInnerCond(genome.get(i, 2), genome.get(i, 3));
-            boolean cond3 = getInnerCond(genome.get(i, 4), genome.get(i, 5));
-            if (cond1 && cond2 && cond3) proteins[World.current_step % 2][genome.get(i, 6) % PROTEINS_COUNT] = MathU.clamp(proteins[World.current_step % 2][genome.get(i, 6) % PROTEINS_COUNT] + genome.get(i, 7), 0, 1000);
+            boolean cond2 = getInnerCond(genome.get(i, 2), genome.get(i, 3), loop);
+            boolean cond3 = getInnerCond(genome.get(i, 4), genome.get(i, 5), loop);
+            if (cond1 && cond2 && cond3) proteins[loop % SYNTESIS_LOOPS][genome.get(i, 6) % PROTEINS_COUNT] = MathU.clamp(proteins[loop % SYNTESIS_LOOPS][genome.get(i, 6) % PROTEINS_COUNT] + genome.get(i, 7), 0, 1000);
         }
     }
 
@@ -143,22 +144,22 @@ public class Bot {
         }
     }
 
-    public boolean getInnerCond(int cond, int param){
-        if (cond < PROTEINS_COUNT) return proteins[1 - World.current_step % 2][cond] >= param;
-        if (cond < 2 * PROTEINS_COUNT) return proteins[1 - World.current_step % 2][cond - PROTEINS_COUNT] <= param;
+    public boolean getInnerCond(int cond, int param, int loop){
+        if (cond < PROTEINS_COUNT) return proteins[(loop - 1) % SYNTESIS_LOOPS][cond] >= param;
+        if (cond < 2 * PROTEINS_COUNT) return proteins[(loop - 1) % SYNTESIS_LOOPS][cond - PROTEINS_COUNT] <= param;
         return param <= 500;
     }
 
     public void doAction(){
         int max_v = -1, max_i = -1;
         for (int i = 0; i < 8; i++){
-            if (proteins[World.current_step % 2][i] > max_v){
-                max_v = proteins[World.current_step % 2][i];
+            if (proteins[0][i] > max_v){
+                max_v = proteins[0][i];
                 max_i = i;
             }
         }
-        if (max_v < 300) return;
-        proteins[World.current_step % 2][max_i] -= 500;
+        if (max_v < 500) return;
+        proteins[0][max_i] -= 500;
         switch (max_i){
             case 0:
                 dir = (dir + 1) % 8;
@@ -222,12 +223,13 @@ public class Bot {
         int tx = MathU.getTx(x, dir);
         int ty = MathU.getTy(y, dir);
         if (World.bot_map[tx][ty] == null) return;
-        energy = MathU.clamp(energy + World.bot_map[tx][ty].energy, 0, 1000);
+        int new_e = MathU.clamp(energy + World.bot_map[tx][ty].energy, 0, 1000);
         int new_v = MathU.clamp(organic + World.bot_map[tx][ty].organic, 0, 1000);
         salt = MathU.clamp(salt + World.bot_map[tx][ty].salt, 0, 1000);
         World.bot_map[tx][ty] = null;
-        addRed(new_v - organic);
+        addRed((new_v - organic + new_e - energy) / 2);
         organic = new_v;
+        energy = new_e;
     }
 
     public void photosynthesisBot(){
@@ -239,8 +241,8 @@ public class Bot {
 
     public void chemosynthesisBot(){
         energy--;
-        int new_v = MathU.clamp(organic + salt / 4, 0, 1000);
-        salt = salt % 4;
+        int new_v = MathU.clamp(organic + Math.min(salt, 50), 0, 1000);
+        salt = Math.max(0, salt - 50);
         addBlue(new_v - organic);
         organic = new_v;
     }
@@ -267,20 +269,23 @@ public class Bot {
     }
 
     private void addRed(int d){
+        d = MathU.cast(d, 0, 1000, 0, 255);
         redC = MathU.clamp(redC + d, 0, 255);
-        greenC = MathU.clamp(greenC - d / 2, 0, 255);
-        blueC = MathU.clamp(blueC - d / 2, 0, 255);
+        greenC = MathU.clamp(greenC - d, 0, 255);
+        blueC = MathU.clamp(blueC - d, 0, 255);
     }
 
     private void addGreen(int d){
-        redC = MathU.clamp(redC - d / 2, 0, 255);
+        d = MathU.cast(d, 0, 1000, 0, 255);
+        redC = MathU.clamp(redC - d, 0, 255);
         greenC = MathU.clamp(greenC + d, 0, 255);
-        blueC = MathU.clamp(blueC - d / 2, 0, 255);
+        blueC = MathU.clamp(blueC - d, 0, 255);
     }
 
     private void addBlue(int d){
-        redC = MathU.clamp(redC - d / 2, 0, 255);
-        greenC = MathU.clamp(greenC - d / 2, 0, 255);
+        d = MathU.cast(d, 0, 1000, 0, 255);
+        redC = MathU.clamp(redC - d, 0, 255);
+        greenC = MathU.clamp(greenC - d, 0, 255);
         blueC = MathU.clamp(blueC + d, 0, 255);
     }
 }
