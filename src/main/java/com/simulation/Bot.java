@@ -212,7 +212,7 @@ public class Bot {
         int ty = MathU.getTy(y, doub_dir);
         Bot new_bot = new Bot(tx, ty, doub_dir, energy / 2, organic / 2, salt / 2, genome);
         World.bot_map[tx][ty] = new_bot;
-        if (RandU.getRandint(0, 1000) <= World.mutation_probably) new_bot.genome.mutate();
+        if (RandU.getRandint(0, 1000, tx, ty) <= World.mutation_probably) new_bot.genome.mutate(tx, ty);
         energy -= energy / 2;
         organic -= organic / 2;
         salt -= salt / 2;

@@ -1,14 +1,15 @@
 package com.simulation;
 
+import com.simulation.multiprocessing.Solver;
 import com.utils.MathU;
 import com.utils.RandU;
 
-public class World implements Runnable{
-    public void run(){
-        while (true) {
-            World.step();
-        }
-    }
+public class World{
+
+    public static final int THREADS_COUNT = 7;
+
+    public static Solver main_solver;
+    public static Solver[] computation_solvers = new Solver[THREADS_COUNT];
 
     public static int width, height;
     public static Bot[][] bot_map;
@@ -19,7 +20,7 @@ public class World implements Runnable{
     public static int current_step = 0;
 
     public static int mutation_probably = 250;
-    public static int organic_viscosity = 1;
+    public static int organic_viscosity = 10;
 
     public static void init(int width, int height){
         World.width = width;
@@ -44,22 +45,33 @@ public class World implements Runnable{
     }
 
     public static void start(){
-        Thread sim_thread = new Thread(new World());
-        sim_thread.setDaemon(true);
-        sim_thread.start();
+        main_solver = new Solver(() -> {
+            World.update_maps();
+            for (int i = 0; i < THREADS_COUNT; i++) computation_solvers[i].trigger();
+        }, false);
+        for (int i = 0; i < THREADS_COUNT; i++) {
+            int finalI = i;
+            computation_solvers[i] = new Solver(() -> World.step(finalI), true);
+            computation_solvers[i].start();
+        }
+        main_solver.start();
     }
 
-    public static void step(){
+    public static void update_maps(){
         update_light();
         update_organic();
         update_salt();
+        current_step++;
+    }
 
-        for (long id = 0; id < (long) width * height; id++){
-            long new_id = (id + current_step * ((long) width * height - 1)) % ((long) width * height);
+    public static void step(int thread){
+        long min_id = (long) width * height / THREADS_COUNT * thread;
+        long max_id = thread == THREADS_COUNT - 1 ? (long) width * height : (long) width * height / THREADS_COUNT * (thread + 1);
+        for (long id = min_id; id < max_id; id++){
+            long new_id = (id + current_step * ((long) width * height - 2)) % ((long) width * height);
             int x = MathU.getXFromId(new_id), y = MathU.getYFromID(new_id);
             if (bot_map[x][y] != null) bot_map[x][y].step();
         }
-        current_step++;
     }
 
     public static void update_light(){

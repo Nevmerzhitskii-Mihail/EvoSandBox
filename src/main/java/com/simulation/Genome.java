@@ -47,13 +47,27 @@ public class Genome {
     }
 
     // Мутация генома
-    public void mutate() {
-        genome.get(RandU.getRandint(0, genome.size() - 1))[RandU.getRandint(0, GENE_SIZE - 1)] = RandU.getRandint(0, 1000);
+    public void mutate(int x, int y) {
+        int r = RandU.getRandint(0, 100, x, y);
+        if (r <= 10){
+            Integer[] tmp = genome.get(RandU.getRandint(0, genome.size() - 1, x, y));
+            Integer[] new_gene = new Integer[GENE_SIZE];
+            System.arraycopy(tmp, 0, new_gene, 0, GENE_SIZE);
+            genome.add(new_gene);
+        }
+        else if (r <= 20){
+            genome.remove(RandU.getRandint(0, genome.size() - 1, x, y));
+        }
+        else {
+            for (int i = 0; i < 5; i++) {
+                genome.get(RandU.getRandint(0, genome.size() - 1, x, y))[RandU.getRandint(0, GENE_SIZE - 1, x, y)] = RandU.getRandint(0, 1000, x, y);
+            }
+        }
 
         // Каждая компонента цвета изменяется максимум на 10 и ограничивается 0 и 255
-        family = new Color(MathU.clamp(family.getRed() + RandU.getRandint(-10, 10), 0, 255),
-                MathU.clamp(family.getGreen() + RandU.getRandint(-10, 10), 0, 255),
-                MathU.clamp(family.getBlue() + RandU.getRandint(-10, 10), 0, 255));
+        family = new Color(MathU.clamp(family.getRed() + RandU.getRandint(-10, 10, x, y), 0, 255),
+                MathU.clamp(family.getGreen() + RandU.getRandint(-10, 10, x, y), 0, 255),
+                MathU.clamp(family.getBlue() + RandU.getRandint(-10, 10, x, y), 0, 255));
     }
 
     // Получение значения данного числа в геноме
