@@ -7,7 +7,7 @@ import javafx.util.Pair;
 
 public class Bot {
     public static final int PROTEINS_COUNT = 50;
-    public static final int SYNTESIS_LOOPS = 3;
+    public static final int SYNTESIS_LOOPS = 2;
 
     public int x, y;
     public int dir;
@@ -32,7 +32,9 @@ public class Bot {
         collectOrganic();
         collectSalt();
         for (int i = 0; i < SYNTESIS_LOOPS; i++) proteinsSynthesis(i + 1);
-        doAction();
+        for (int i = 0; i < 3; i++) {
+            if (doAction()) break;
+        }
         if (energy <= 0 || age >= 1000) {killBot(); return;}
         energy--;
         age++;
@@ -150,41 +152,52 @@ public class Bot {
         return param <= 500;
     }
 
-    public void doAction(){
+    public boolean doAction(){
         int max_v = -1, max_i = -1;
-        for (int i = 0; i < 8; i++){
+        for (int i = 0; i < 11; i++){
             if (proteins[0][i] > max_v){
                 max_v = proteins[0][i];
                 max_i = i;
             }
         }
-        if (max_v < 500) return;
+        if (max_v < 500) return true;
         proteins[0][max_i] -= 500;
         switch (max_i){
             case 0:
-                dir = (dir + 1) % 8;
-                break;
+                rotateToRelative();
+                return false;
             case 1:
-                dir = (dir + 7) % 8;
+                rotateToNotRelative();
+                return false;
             case 2:
-                moveBot();
-                break;
+                rotateToMaxLight();
+                return false;
             case 3:
-                doubleBot();
-                break;
+                rotateToMaxSalt();
+                return false;
             case 4:
-                attackBot();
-                break;
+                moveBot();
+                return true;
             case 5:
-                photosynthesisBot();
-                break;
+                doubleBot();
+                return true;
             case 6:
-                chemosynthesisBot();
-                break;
+                attackBot();
+                return true;
             case 7:
+                photosynthesisBot();
+                return true;
+            case 8:
+                chemosynthesisBot();
+                return true;
+            case 10:
+                distributeResources();
+                return true;
+            case 9:
                 produceEnergyBot();
-                break;
+                return true;
         }
+        return true;
     }
 
     public void killBot(){
@@ -193,8 +206,62 @@ public class Bot {
         World.bot_map[x][y] = null;
     }
 
+    public void rotateToRelative(){
+        for (int d = 0; d < 8; d++){
+            int tx = MathU.getTx(x, (dir + d) % 8);
+            int ty = MathU.getTy(y, (dir + d) % 8);
+            Bot bot = World.bot_map[tx][ty];
+            if (bot == null) continue;
+            if (isRelative(bot)) {
+                dir = (dir + d) % 8;
+                break;
+            }
+        }
+    }
+
+    public void rotateToNotRelative(){
+        for (int d = 0; d < 8; d++){
+            int tx = MathU.getTx(x, (dir + d) % 8);
+            int ty = MathU.getTy(y, (dir + d) % 8);
+            Bot bot = World.bot_map[tx][ty];
+            if (bot == null) continue;
+            if (!isRelative(bot)) {
+                dir = (dir + d) % 8;
+                break;
+            }
+        }
+    }
+
+    public void rotateToMaxLight(){
+        int max_l = -1, n_dir = -1;
+        for (int d = 0; d < 8; d++){
+            int tx = MathU.getTx(x, (dir + d) % 8);
+            int ty = MathU.getTy(y, (dir + d) % 8);
+            if (World.bot_map[tx][ty] != null) continue;
+            if (World.light_map[tx][ty] > max_l) {
+                max_l = World.light_map[tx][ty];
+                n_dir = (dir + d) % 8;
+            }
+        }
+        if (n_dir != -1) dir = n_dir;
+    }
+
+    public void rotateToMaxSalt(){
+        int max_s = -1, n_dir = -1;
+        for (int d = 0; d < 8; d++){
+            int tx = MathU.getTx(x, (dir + d) % 8);
+            int ty = MathU.getTy(y, (dir + d) % 8);
+            if (World.bot_map[tx][ty] != null) continue;
+            if (World.salt_map[tx][ty] > max_s) {
+                max_s = World.salt_map[tx][ty];
+                n_dir = (dir + d) % 8;
+            }
+        }
+        if (n_dir != -1) dir = n_dir;
+    }
+
     public void moveBot(){
-        energy -= 5;
+        energy -= 10;
         int tx = MathU.getTx(x, dir);
         int ty = MathU.getTy(y, dir);
         if (World.bot_map[tx][ty] != null) return;
@@ -206,20 +273,20 @@ public class Bot {
     public void doubleBot(){
         if (energy < 150 && organic <= 100) return;
         int doub_dir = findEmptyDir();
-        if (doub_dir == 8) return;
         energy -= 150; organic -= 100;
+        if (doub_dir == 8) return;
         int tx = MathU.getTx(x, doub_dir);
         int ty = MathU.getTy(y, doub_dir);
         Bot new_bot = new Bot(tx, ty, doub_dir, energy / 2, organic / 2, salt / 2, genome);
         World.bot_map[tx][ty] = new_bot;
-        if (RandU.getRandint(0, 1000, tx, ty) <= World.mutation_probably) new_bot.genome.mutate(tx, ty);
+        if (RandU.getRandint(0, 1001, tx, ty) <= World.mutation_probably) new_bot.genome.mutate(tx, ty);
         energy -= energy / 2;
         organic -= organic / 2;
         salt -= salt / 2;
     }
 
     public void attackBot(){
-        energy -= 10;
+        energy -= 5;
         int tx = MathU.getTx(x, dir);
         int ty = MathU.getTy(y, dir);
         if (World.bot_map[tx][ty] == null) return;
@@ -250,6 +317,19 @@ public class Bot {
     public void produceEnergyBot(){
         energy = MathU.clamp(energy + organic, 0, 1000);
         organic = 0;
+    }
+
+    public void distributeResources(){
+        int tx = MathU.getTx(x, dir);
+        int ty = MathU.getTy(y, dir);
+        Bot other = World.bot_map[tx][ty];
+        if (other == null) return;
+        int new_e = MathU.clamp((energy + other.energy) / 2, 0, 1000);
+        int new_o = MathU.clamp((organic + other.organic) / 2, 0, 1000);
+        int new_s = MathU.clamp((salt + other.salt) / 2, 0, 1000);
+        energy = new_e; other.energy = new_e;
+        organic = new_o; other.organic = new_o;
+        salt = new_s; other.salt = new_s;
     }
 
     public int findEmptyDir(){

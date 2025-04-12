@@ -38,9 +38,9 @@ public class World{
         }
 
         for (int i = 0; i < 4000; i++){
-            int x = RandU.getRandint(0, width - 1);
-            int y = RandU.getRandint(0, height - 1);
-            bot_map[x][y] = new Bot(x, y, RandU.getRandint(0, 7), 300, 300, 0, new Genome(30));
+            int x = RandU.getRandint(0, width);
+            int y = RandU.getRandint(0, height);
+            bot_map[x][y] = new Bot(x, y, RandU.getRandint(0, 8), 300, 300, 0, new Genome(30));
         }
     }
 
@@ -59,7 +59,7 @@ public class World{
 
     public static void update_maps(){
         update_light();
-        update_organic();
+        //update_organic();
         update_salt();
         current_step++;
     }
