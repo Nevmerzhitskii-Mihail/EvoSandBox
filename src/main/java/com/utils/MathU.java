@@ -7,11 +7,11 @@ import java.awt.*;
 
 public class MathU {
     public static int getXFromId(long id){
-        return (int)((id % ((long) World.width * World.height)) / World.height);
+        return (int)((id % ((long) Main.WIDTH * Main.HEIGHT)) / Main.HEIGHT);
     }
 
     public static int getYFromID(long id){
-        return (int)((id % ((long) World.width * World.height)) % World.height);
+        return (int)((id % ((long) Main.WIDTH * Main.HEIGHT)) % Main.HEIGHT);
     }
 
     public static int clamp(int value, int min, int max){
@@ -42,10 +42,10 @@ public class MathU {
     }
 
     public static int getTx(int x, int dir){
-        return ((x + getDx(dir)) % World.width + World.width) % World.width;
+        return ((x + getDx(dir)) % Main.WIDTH + Main.WIDTH) % Main.WIDTH;
     }
 
     public static int getTy(int y, int dir){
-        return clamp(y + getDy(dir), 0, World.height - 1);
+        return clamp(y + getDy(dir), 0, Main.HEIGHT - 1);
     }
 }

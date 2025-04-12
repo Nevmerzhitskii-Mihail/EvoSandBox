@@ -10,17 +10,21 @@ public class Main {
 
     public static int drawing_mode;
     public static int background_mode;
+
+    public static boolean is_started = false;
+    public static void regenerate(long seed){
+        World.stop();
+        RandU.setSeed(seed);
+        World.init(WIDTH, HEIGHT);
+        is_started = false;
+        World.start();
+    }
+
     public static void main(String[] args){
         WIDTH = SCREEN_WIDTH / TILE;
         HEIGHT = SCREEN_HEIGHT / TILE;
-        long seed = System.currentTimeMillis();
-//        long seed = 1744289340867l;
-        World.width = WIDTH; World.height = HEIGHT;
-        System.out.println("Seed: " + seed);
-        RandU.setSeed(seed);
+        regenerate(System.currentTimeMillis());
         Drawer.init(SCREEN_WIDTH, SCREEN_HEIGHT, TILE);
-        World.init(WIDTH, HEIGHT);
-        World.start();
         while (true){
             Drawer.redraw();
         }

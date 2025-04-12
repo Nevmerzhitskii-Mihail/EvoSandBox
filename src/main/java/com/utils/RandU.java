@@ -1,5 +1,6 @@
 package com.utils;
 
+import com.Main;
 import com.simulation.World;
 
 import java.util.Random;
@@ -11,8 +12,8 @@ public class RandU {
     public static void setSeed(long seed){
         rand.setSeed(seed);
         RandU.seed = seed;
-        rand_grid = new Random[World.width][World.height];
-        for (long id = 0; id < (long) World.width * World.height; id++){
+        rand_grid = new Random[Main.WIDTH][Main.HEIGHT];
+        for (long id = 0; id < (long) Main.WIDTH * Main.HEIGHT; id++){
             rand_grid[MathU.getXFromId(id)][MathU.getYFromID(id)] = new Random(seed + id + 1);
         }
     }

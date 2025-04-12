@@ -25,6 +25,9 @@ public class Drawer {
     public static VarLabel step = new VarLabel("Step");
 
     public static JToolBar settings = new JToolBar(SwingConstants.VERTICAL);
+    public static JButton generate = new JButton("Generate");
+    public static JTextField seed_field = new JTextField();
+    public static JButton stop = new JButton("Start");
     public static JComboBox drawing = new JComboBox(new String[]{"Family", "Predators", "Energy", "Organic", "Salt", "Age"});
     public static JComboBox background = new JComboBox(new String[]{"Light", "Organic", "Salt"});
 
@@ -41,6 +44,25 @@ public class Drawer {
 
         info.add(step);
         mainWindow.add(info, BorderLayout.SOUTH);
+
+        settings.add(generate);
+        generate.addActionListener(e -> {
+            long seed;
+            String str = seed_field.getText();
+            if (str.equals("")) seed = System.currentTimeMillis();
+            else seed = Long.parseLong(str);
+            Main.regenerate(seed);
+            seed_field.setText(String.valueOf(seed));
+        });
+
+        settings.add(seed_field);
+
+        settings.add(stop);
+        stop.addActionListener(e -> {
+            Main.is_started = !Main.is_started;
+            generate.setEnabled(!Main.is_started);
+            seed_field.setEnabled(!Main.is_started);
+        });
 
         settings.add(new JLabel("Drawing Mode"));
         settings.add(drawing);

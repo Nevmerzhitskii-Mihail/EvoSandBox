@@ -87,7 +87,7 @@ public class Bot {
                 return isRelative(World.bot_map[tx][ty]);
             case 3:
                 tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return true;
+                if (World.bot_map[tx][ty] == null) return false;
                 return !isRelative(World.bot_map[tx][ty]);
             case 4:
                 return energy >= param;
@@ -164,16 +164,16 @@ public class Bot {
         proteins[0][max_i] -= 500;
         switch (max_i){
             case 0:
-                rotateToRelative();
+                dir = (dir + 1) % 8;
                 return false;
             case 1:
-                rotateToNotRelative();
+                dir = (dir + 7) % 8;
                 return false;
             case 2:
-                rotateToMaxLight();
+                dir = (dir + 4) % 8;
                 return false;
             case 3:
-                rotateToMaxSalt();
+                killBot();
                 return false;
             case 4:
                 moveBot();
@@ -211,7 +211,10 @@ public class Bot {
             int tx = MathU.getTx(x, (dir + d) % 8);
             int ty = MathU.getTy(y, (dir + d) % 8);
             Bot bot = World.bot_map[tx][ty];
-            if (bot == null) continue;
+            if (bot == null) {
+                dir = (dir + d) % 8;
+                break;
+            }
             if (isRelative(bot)) {
                 dir = (dir + d) % 8;
                 break;
@@ -224,7 +227,10 @@ public class Bot {
             int tx = MathU.getTx(x, (dir + d) % 8);
             int ty = MathU.getTy(y, (dir + d) % 8);
             Bot bot = World.bot_map[tx][ty];
-            if (bot == null) continue;
+            if (bot == null) {
+                dir = (dir + d) % 8;
+                break;
+            }
             if (!isRelative(bot)) {
                 dir = (dir + d) % 8;
                 break;

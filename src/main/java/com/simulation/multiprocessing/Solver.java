@@ -29,6 +29,10 @@ public class Solver {
         thread.start();
     }
 
+    public void terminate(){
+        thread.stop();
+    }
+
     public void trigger(){
         active = true;
     }

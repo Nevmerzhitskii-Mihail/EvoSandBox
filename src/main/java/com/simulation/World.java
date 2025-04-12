@@ -1,5 +1,6 @@
 package com.simulation;
 
+import com.Main;
 import com.simulation.multiprocessing.Solver;
 import com.utils.MathU;
 import com.utils.RandU;
@@ -20,7 +21,7 @@ public class World{
     public static int current_step = 0;
 
     public static int mutation_probably = 250;
-    public static int organic_viscosity = 10;
+    public static int organic_viscosity = 100;
 
     public static void init(int width, int height){
         World.width = width;
@@ -46,6 +47,10 @@ public class World{
 
     public static void start(){
         main_solver = new Solver(() -> {
+            if (!Main.is_started) {
+                System.out.print("");
+                return;
+            }
             World.update_maps();
             for (int i = 0; i < THREADS_COUNT; i++) computation_solvers[i].trigger();
         }, false);
@@ -57,9 +62,15 @@ public class World{
         main_solver.start();
     }
 
+    public static void stop(){
+        if (main_solver == null) return;
+        for (int i = 0; i < THREADS_COUNT; i++) computation_solvers[i].terminate();
+        main_solver.terminate();
+    }
+
     public static void update_maps(){
         update_light();
-        //update_organic();
+        update_organic();
         update_salt();
         current_step++;
     }
