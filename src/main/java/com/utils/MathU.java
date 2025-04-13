@@ -1,17 +1,16 @@
 package com.utils;
 
-import com.Main;
-import com.simulation.World;
+import com.Settings;
 
 import java.awt.*;
 
 public class MathU {
     public static int getXFromId(long id){
-        return (int)((id % ((long) Main.WIDTH * Main.HEIGHT)) / Main.HEIGHT);
+        return (int)((id % ((long) Settings.WIDTH * Settings.HEIGHT)) / Settings.HEIGHT);
     }
 
     public static int getYFromID(long id){
-        return (int)((id % ((long) Main.WIDTH * Main.HEIGHT)) % Main.HEIGHT);
+        return (int)((id % ((long) Settings.WIDTH * Settings.HEIGHT)) % Settings.HEIGHT);
     }
 
     public static int clamp(int value, int min, int max){
@@ -29,6 +28,19 @@ public class MathU {
         return new Color(r, g, b);
     }
 
+    public static Color avr(Color[] colors){
+        int r = 0, g = 0, b = 0;
+        for (int i = 0; i < colors.length; i++){
+            r += colors[i].getRed();
+            g += colors[i].getGreen();
+            b += colors[i].getBlue();
+        }
+        r /= colors.length;
+        g /= colors.length;
+        b /= colors.length;
+        return new Color(r, g, b);
+    }
+
     public static int getDx(int dir){
         if (dir == 0 || dir == 6 || dir == 7) return -1;
         if (dir == 1 || dir == 5) return 0;
@@ -42,10 +54,10 @@ public class MathU {
     }
 
     public static int getTx(int x, int dir){
-        return ((x + getDx(dir)) % Main.WIDTH + Main.WIDTH) % Main.WIDTH;
+        return ((x + getDx(dir)) % Settings.WIDTH + Settings.WIDTH) % Settings.WIDTH;
     }
 
     public static int getTy(int y, int dir){
-        return clamp(y + getDy(dir), 0, Main.HEIGHT - 1);
+        return clamp(y + getDy(dir), 0, Settings.HEIGHT - 1);
     }
 }

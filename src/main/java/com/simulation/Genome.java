@@ -7,7 +7,6 @@ import java.awt.*;
 import java.util.ArrayList;
 
 public class Genome {
-    public static final int GENE_SIZE = 8;
 
     // Структура генома
     // Геном состоит из списка генов и может меняться в размерах
@@ -23,15 +22,16 @@ public class Genome {
     // Синтез белка происходит только если все три условия выполнены
 
 
-    public ArrayList<Integer[]> genome = new ArrayList<>(); // Список генов
+    public ArrayList<ArrayList<Integer>> genome = new ArrayList<>(); // Список генов
     public Color family; // "Натуральный" цвет бота (используется при определении родственников)
 
     // Создание случайного генома
     public Genome(int size) {
         for (int i = 0; i < size; i++) {
-            Integer[] tmp = new Integer[GENE_SIZE];
-            for (int j = 0; j < GENE_SIZE; j++) tmp[j] = RandU.getRandint(0, 1000);
-            genome.add(tmp);
+            ArrayList<Integer> gene = new ArrayList<>();
+            int gene_size = RandU.getRandint(1, 8) * 2 + 2;
+            for (int j = 0; j < gene_size; j++) gene.add(RandU.getRandint(0, 1000));
+            genome.add(gene);
         }
         family = new Color(RandU.getRandint(30, 225), RandU.getRandint(30, 225), RandU.getRandint(30, 225));
     }
@@ -39,9 +39,7 @@ public class Genome {
     // Создание генома-копии
     public Genome(Genome parent) {
         for (int i = 0; i < parent.genome.size(); i++) {
-            Integer[] tmp = new Integer[GENE_SIZE];
-            System.arraycopy(parent.genome.get(i), 0, tmp, 0, GENE_SIZE);
-            genome.add(tmp);
+            genome.add(new ArrayList<>(parent.genome.get(i)));
         }
         family = new Color(parent.family.getRGB());
     }
@@ -50,17 +48,36 @@ public class Genome {
     public void mutate(int x, int y) {
         int r = RandU.getRandint(0, 100, x, y);
         if (r <= 10){
-            Integer[] tmp = genome.get(RandU.getRandint(0, genome.size(), x, y));
-            Integer[] new_gene = new Integer[GENE_SIZE];
-            System.arraycopy(tmp, 0, new_gene, 0, GENE_SIZE);
-            genome.add(new_gene);
+            ArrayList<Integer> tmp = new ArrayList<>(genome.get(RandU.getRandint(0, genome.size(), x, y)));
+            genome.add(tmp);
         }
         else if (r <= 20){
             genome.remove(RandU.getRandint(0, genome.size(), x, y));
         }
+        else if (r <= 30){
+            int gene_num = RandU.getRandint(0, genome.size(), x, y);
+            if (genome.get(gene_num).size() < 32) {
+                genome.get(gene_num).add(RandU.getRandint(0, 1000, x, y));
+                genome.get(gene_num).add(RandU.getRandint(0, 1000, x, y));
+            }
+        }
+        else if (r <= 40){
+            int gene_num = RandU.getRandint(0, genome.size(), x, y);
+            try {
+                if (genome.get(gene_num).size() > 4) {
+                    int codon_num = RandU.getRandint(1, genome.get(gene_num).size() / 2, x, y);
+                    int a = genome.get(gene_num).remove(codon_num * 2);
+                    a = genome.get(gene_num).remove(codon_num * 2);
+                }
+            }
+            catch (IndexOutOfBoundsException e){
+                System.out.println(genome.get(gene_num).size());
+            }
+        }
         else {
             for (int i = 0; i < 5; i++) {
-                genome.get(RandU.getRandint(0, genome.size(), x, y))[RandU.getRandint(0, GENE_SIZE, x, y)] = RandU.getRandint(0, 1000, x, y);
+                int gene_num = RandU.getRandint(0, genome.size(), x, y);
+                genome.get(gene_num).set(RandU.getRandint(0, genome.get(gene_num).size()), RandU.getRandint(0, 1000, x, y));
             }
         }
 
@@ -72,7 +89,7 @@ public class Genome {
 
     // Получение значения данного числа в геноме
     public int get(int a, int b) {
-        return genome.get(a)[b];
+        return genome.get(a).get(b);
     }
 
     // Получение размера генома

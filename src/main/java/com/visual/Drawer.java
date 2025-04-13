@@ -1,6 +1,7 @@
 package com.visual;
 
 import com.Main;
+import com.Settings;
 import com.simulation.Bot;
 import com.simulation.World;
 import com.utils.MathU;
@@ -11,7 +12,6 @@ import java.awt.image.BufferedImage;
 
 public class Drawer {
     public static JFrame mainWindow;
-    public static int frame_width, frame_height, tile;
 
     public static JPanel canvas = new JPanel(){
         @Override
@@ -29,14 +29,26 @@ public class Drawer {
     public static JTextField seed_field = new JTextField();
     public static JButton stop = new JButton("Start");
     public static JComboBox drawing = new JComboBox(new String[]{"Family", "Predators", "Energy", "Organic", "Salt", "Age"});
-    public static JComboBox background = new JComboBox(new String[]{"Light", "Organic", "Salt"});
+    public static JComboBox background = new JComboBox(new String[]{"Light", "Organic", "Salt", "Morphogenes"});
 
-    public static void init(int width, int height, int tile){
-        frame_width = width;
-        frame_height = height;
-        Drawer.tile = tile;
+    static Color[] morphogenes_colors = new Color[]{
+            new Color(0xFF0000),
+            new Color(0x38FF0E),
+            new Color(0x0045FF),
+            new Color(0xFFB100),
+            new Color(0x00FF9B),
+            new Color(0x00FFFF),
+            new Color(0x8400FF),
+            new Color(0xE600FF),
+            new Color(0xFF0087),
+            new Color(0xFF8080),
+            new Color(0xCFFF8B),
+            new Color(0x9EB8FF)
+    };
 
-        canvas_image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    public static void init(){
+
+        canvas_image = new BufferedImage(Settings.SCREEN_WIDTH, Settings.SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
 
         mainWindow = new JFrame();
 
@@ -82,16 +94,16 @@ public class Drawer {
         mainWindow.pack();
         mainWindow.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         mainWindow.setResizable(false);
-        mainWindow.setSize(width + 200, height + 100);
+        mainWindow.setSize(Settings.SCREEN_WIDTH + 200, Settings.SCREEN_HEIGHT + 100);
         mainWindow.setVisible(true);
     }
 
     public static void redraw(){
-        BufferedImage buffer = new BufferedImage(frame_width, frame_height, BufferedImage.TYPE_INT_RGB);
+        BufferedImage buffer = new BufferedImage(Settings.SCREEN_WIDTH, Settings.SCREEN_HEIGHT, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = buffer.createGraphics();
         drawBackground(g);
-        for (int x = 0; x < Main.WIDTH; x++) {
-            for (int y = 0; y < Main.HEIGHT; y++) {
+        for (int x = 0; x < Settings.WIDTH; x++) {
+            for (int y = 0; y < Settings.HEIGHT; y++) {
                 Bot b = World.bot_map[x][y];
                 if (b != null) drawBot(g, x, y, b);
             }
@@ -103,8 +115,8 @@ public class Drawer {
     }
 
     public static void drawBackground(Graphics2D g){
-        for (int x = 0; x < Main.WIDTH; x++)
-            for (int y = 0; y < Main.HEIGHT; y++){
+        for (int x = 0; x < Settings.WIDTH; x++)
+            for (int y = 0; y < Settings.HEIGHT; y++){
                 switch (Main.background_mode){
                     case 0:
                         g.setColor(MathU.lerp(World.light_map[x][y], new Color(0x0F2841), new Color(0xF88E3F)));
@@ -115,12 +127,20 @@ public class Drawer {
                     case 2:
                         g.setColor(MathU.lerp(World.salt_map[x][y], new Color(0x50503D), new Color(0x2E97BD)));
                         break;
+                    case 3:
+                        Color[] colors = new Color[Settings.MORPHOGENES_COUNT];
+                        for (int i = 0; i < Settings.MORPHOGENES_COUNT; i++){
+                            colors[i] = MathU.lerp(World.morphogenes_map[x][y][i] * 31, Color.BLACK, morphogenes_colors[i]);
+                        }
+                        g.setColor(MathU.avr(colors));
+                        break;
                 }
-                g.fillRect(x * tile, y * tile, tile, tile);
+                g.fillRect(x * Settings.TILE, y * Settings.TILE, Settings.TILE, Settings.TILE);
             }
     }
 
     public static void drawBot(Graphics2D g, int x, int y, Bot bot){
+        if (Main.background_mode == 3) return;
         switch (Main.drawing_mode){
             case 0:
                 g.setColor(bot.genome.family);
@@ -140,6 +160,6 @@ public class Drawer {
             case 5:
                 g.setColor(MathU.lerp(bot.age, new Color(0x24250F), new Color(0x7337D5)));
         }
-        g.fillRect(x * tile, y * tile, tile, tile);
+        g.fillRect(x * Settings.TILE, y * Settings.TILE, Settings.TILE, Settings.TILE);
     }
 }

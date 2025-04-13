@@ -1,19 +1,18 @@
 package com.simulation;
 
 import com.Main;
+import com.Settings;
 import com.simulation.multiprocessing.Solver;
 import com.utils.MathU;
 import com.utils.RandU;
 
 public class World{
-
-    public static final int THREADS_COUNT = 7;
-
     public static Solver main_solver;
-    public static Solver[] computation_solvers = new Solver[THREADS_COUNT];
+    public static Solver[] computation_solvers = new Solver[Settings.THREADS_COUNT];
 
-    public static int width, height;
+    public static int width = Settings.WIDTH, height = Settings.HEIGHT;
     public static Bot[][] bot_map;
+    public static int[][][] morphogenes_map;
     public static int[][] salt_map;
     public static int[][] organic_map;
     public static int[][] light_map;
@@ -23,10 +22,9 @@ public class World{
     public static int mutation_probably = 250;
     public static int organic_viscosity = 100;
 
-    public static void init(int width, int height){
-        World.width = width;
-        World.height = height;
+    public static void init(){
         bot_map = new Bot[width][height];
+        morphogenes_map = new int[width][height][Settings.MORPHOGENES_COUNT];
         salt_map = new int[width][height];
         organic_map = new int[width][height];
         light_map = new int[width][height];
@@ -41,7 +39,7 @@ public class World{
         for (int i = 0; i < 4000; i++){
             int x = RandU.getRandint(0, width);
             int y = RandU.getRandint(0, height);
-            bot_map[x][y] = new Bot(x, y, RandU.getRandint(0, 8), 300, 300, 0, new Genome(30));
+            bot_map[x][y] = new Bot(x, y, RandU.getRandint(0, 8), 300, 300, 0, new Genome(30), new int[Settings.PROTEINS_COUNT]);
         }
     }
 
@@ -51,10 +49,10 @@ public class World{
                 System.out.print("");
                 return;
             }
-            World.update_maps();
-            for (int i = 0; i < THREADS_COUNT; i++) computation_solvers[i].trigger();
+            World.updateMaps();
+            for (int i = 0; i < Settings.THREADS_COUNT; i++) computation_solvers[i].trigger();
         }, false);
-        for (int i = 0; i < THREADS_COUNT; i++) {
+        for (int i = 0; i < Settings.THREADS_COUNT; i++) {
             int finalI = i;
             computation_solvers[i] = new Solver(() -> World.step(finalI), true);
             computation_solvers[i].start();
@@ -64,20 +62,32 @@ public class World{
 
     public static void stop(){
         if (main_solver == null) return;
-        for (int i = 0; i < THREADS_COUNT; i++) computation_solvers[i].terminate();
+        for (int i = 0; i < Settings.THREADS_COUNT; i++) computation_solvers[i].terminate();
         main_solver.terminate();
+        current_step = 0;
     }
 
-    public static void update_maps(){
-        update_light();
-        update_organic();
-        update_salt();
+    public static void updateMaps(){
+        updateLight();
+        updateOrganic();
+        updateMorphogenes();
+        updateSalt();
         current_step++;
     }
 
+    public static void putMorphogene(int x, int y, int type, int intensity){
+        for (int dx = -intensity; dx < intensity + 1; dx++){
+            for (int dy = -intensity + Math.abs(dx); dy <= intensity - Math.abs(dx) + 1; dy++){
+                int tx = ((x + dx) % Settings.WIDTH + Settings.WIDTH) % Settings.WIDTH, ty = y + dy;
+                if (ty < 0 || ty >= Settings.HEIGHT) continue;
+                morphogenes_map[tx][ty][type] = intensity - Math.abs(dx) - Math.abs(dy);
+            }
+        }
+    }
+
     public static void step(int thread){
-        long min_id = (long) width * height / THREADS_COUNT * thread;
-        long max_id = thread == THREADS_COUNT - 1 ? (long) width * height : (long) width * height / THREADS_COUNT * (thread + 1);
+        long min_id = (long) width * height / Settings.THREADS_COUNT * thread;
+        long max_id = (thread == Settings.THREADS_COUNT - 1) ? (long) width * height : (long) width * height / Settings.THREADS_COUNT * (thread + 1);
         for (long id = min_id; id < max_id; id++){
             long new_id = (id + current_step * ((long) width * height - 2)) % ((long) width * height);
             int x = MathU.getXFromId(new_id), y = MathU.getYFromID(new_id);
@@ -85,7 +95,7 @@ public class World{
         }
     }
 
-    public static void update_light(){
+    public static void updateLight(){
         for (int x = 0; x < width; x++) light_map[x][0] = 1000;
         for (int y = 1; y < height; y++){
             for (int x = 0; x < width; x++){
@@ -102,7 +112,7 @@ public class World{
         }
     }
 
-    public static void update_organic(){
+    public static void updateOrganic(){
         int[][] tmp = new int[width][height];
         for (int x = 0; x < width; x++){
             for (int y = 0; y < height; y++){
@@ -119,7 +129,17 @@ public class World{
         for (int x = 0; x < width; x++) System.arraycopy(tmp[x], 0, organic_map[x], 0, height);
     }
 
-    public static void update_salt(){
+    public static void updateMorphogenes(){
+        for (int x = 0; x < width; x++){
+            for (int y = 0; y < height; y++){
+                for (int t = 0; t < Settings.MORPHOGENES_COUNT; t++){
+                    morphogenes_map[x][y][t] = morphogenes_map[x][y][t] * 3 / 4;
+                }
+            }
+        }
+    }
+
+    public static void updateSalt(){
         for (int x = 0; x < width; x++) salt_map[x][height - 1] = 1000;
         for (int y = height - 2; y >= 0; y--){
             for (int x = 0; x < width; x++){

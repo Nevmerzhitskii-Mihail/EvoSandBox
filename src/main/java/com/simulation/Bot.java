@@ -1,14 +1,12 @@
 package com.simulation;
 
 import com.Main;
+import com.Settings;
 import com.utils.MathU;
 import com.utils.RandU;
 import javafx.util.Pair;
 
 public class Bot {
-    public static final int PROTEINS_COUNT = 50;
-    public static final int SYNTESIS_LOOPS = 2;
-
     public int x, y;
     public int dir;
     public int energy;
@@ -16,25 +14,35 @@ public class Bot {
     public int salt;
     public int age;
     public int[] efficiency = new int[]{333, 333, 333};
-    public int[][] proteins = new int[SYNTESIS_LOOPS][PROTEINS_COUNT];
+    public int[][] proteins = new int[Settings.SYNTESIS_LOOPS][Settings.PROTEINS_COUNT];
 
     public Genome genome;
     public int redC = 128, greenC = 128, blueC = 128;
 
-    public Bot(int x, int y, int dir, int energy, int organic, int salt, Genome parent){
+    public Bot(int x, int y, int dir, int energy, int organic, int salt, Genome parent, int[] proteins_start){
         this.x = x; this.y = y; this.dir = dir;
         this.energy = energy; this.organic = organic; this.salt = salt;
         genome = new Genome(parent);
         age = 0;
+        System.arraycopy(proteins_start, 0, proteins[0], 0, Settings.PROTEINS_COUNT);
     }
 
     public void step(){
         collectOrganic();
         collectSalt();
-        for (int i = 0; i < SYNTESIS_LOOPS; i++) proteinsSynthesis(i + 1);
-        for (int i = 0; i < 3; i++) {
-            if (doAction()) break;
+        for (int i = 0; i < Settings.SYNTESIS_LOOPS; i++) proteinsSynthesis(i + 1);
+        int max_c = -1, max_i = -1;
+        for (int i = 0; i < 7; i++){
+            if (proteins[0][i] > max_c){
+                max_c = proteins[0][i];
+                max_i = i;
+            }
         }
+        if (max_c > 500){
+            proteins[0][max_i] -= 500;
+            doAction(max_i, 1);
+        }
+        produceEnergyBot();
         if (energy <= 0 || age >= 1000) {killBot(); return;}
         energy--;
         age++;
@@ -63,207 +71,121 @@ public class Bot {
     }
 
     public void proteinsSynthesis(int loop){
-        System.arraycopy(proteins[(loop - 1) % SYNTESIS_LOOPS], 0, proteins[loop % SYNTESIS_LOOPS], 0, PROTEINS_COUNT);
-        for (int i = 0; i < PROTEINS_COUNT; i++) proteins[loop % SYNTESIS_LOOPS][i] = MathU.clamp(proteins[loop % SYNTESIS_LOOPS][i] - 50, 0, 1000);
-        for (int i = 0; i < genome.size(); i++){
-            boolean cond1 = getOuterCond(genome.get(i, 0), genome.get(i, 1));
-            boolean cond2 = getInnerCond(genome.get(i, 2), genome.get(i, 3), loop);
-            boolean cond3 = getInnerCond(genome.get(i, 4), genome.get(i, 5), loop);
-            if (cond1 && cond2 && cond3) proteins[loop % SYNTESIS_LOOPS][genome.get(i, 6) % PROTEINS_COUNT] = MathU.clamp(proteins[loop % SYNTESIS_LOOPS][genome.get(i, 6) % PROTEINS_COUNT] + genome.get(i, 7), 0, 1000);
+        System.arraycopy(proteins[(loop - 1) % Settings.SYNTESIS_LOOPS], 0, proteins[loop % Settings.SYNTESIS_LOOPS], 0, Settings.PROTEINS_COUNT);
+        for (int i = 0; i < Settings.PROTEINS_COUNT; i++){
+            proteins[loop % Settings.SYNTESIS_LOOPS][i] = MathU.clamp(proteins[loop % Settings.SYNTESIS_LOOPS][i] - 50, 0, 1000);
         }
-    }
-
-    public boolean getOuterCond(int value, int param){
-        switch (value){
-            case 0:
-                int tx = MathU.getTx(x, (dir + param) % 8), ty = MathU.getTy(y, (dir + param) % 8);
-                return World.bot_map[tx][ty] == null;
-            case 1:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                return World.bot_map[tx][ty] != null;
-            case 2:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return isRelative(World.bot_map[tx][ty]);
-            case 3:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return !isRelative(World.bot_map[tx][ty]);
-            case 4:
-                return energy >= param;
-            case 5:
-                return energy <= param;
-            case 6:
-                return organic >= param;
-            case 7:
-                return organic <= param;
-            case 8:
-                return salt >= param;
-            case 9:
-                return salt <= param;
-            case 10:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return true;
-                return World.bot_map[tx][ty].energy <= energy;
-            case 11:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return World.bot_map[tx][ty].energy >= energy;
-            case 12:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return true;
-                return World.bot_map[tx][ty].organic <= organic;
-            case 13:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return World.bot_map[tx][ty].organic >= organic;
-            case 14:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return true;
-                return World.bot_map[tx][ty].salt <= salt;
-            case 15:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return World.bot_map[tx][ty].salt >= salt;
-            case 16:
-                return World.light_map[x][y] >= param;
-            case 17:
-                return World.light_map[x][y] <= param;
-            case 18:
-                return World.organic_map[x][y] >= param;
-            case 19:
-                return World.organic_map[x][y] <= param;
-            case 20:
-                return World.salt_map[x][y] >= param;
-            case 21:
-                return World.salt_map[x][y] <= param;
-            case 22:
-                return ((dir - param) % 8 + 8) % 8 == 0;
-            case 23:
-                return ((dir - param) % 8 + 8) % 8 != 0;
-            default:
-                return true;
-        }
-    }
-
-    public boolean getInnerCond(int cond, int param, int loop){
-        if (cond < PROTEINS_COUNT) return proteins[(loop - 1) % SYNTESIS_LOOPS][cond] >= param;
-        if (cond < 2 * PROTEINS_COUNT) return proteins[(loop - 1) % SYNTESIS_LOOPS][cond - PROTEINS_COUNT] <= param;
-        return param <= 500;
-    }
-
-    public boolean doAction(){
-        int max_v = -1, max_i = -1;
-        for (int i = 0; i < 11; i++){
-            if (proteins[0][i] > max_v){
-                max_v = proteins[0][i];
-                max_i = i;
+        for (int i = 0; i < genome.genome.size(); i++){
+            boolean res = true;
+            int com = genome.get(i, 0), intensity = genome.get(i, 1);
+            for (int j = 2; j < genome.genome.get(i).size(); j += 2) {
+                res = res & getCond(genome.get(i, j), genome.get(i, j + 1), loop);
+            }
+            if (res) {
+                if (com < Settings.MORPHOGENES_COUNT) World.putMorphogene(x, y, com, intensity / 31);
+                else if (com < Settings.MORPHOGENES_COUNT + Settings.PROTEINS_COUNT)
+                    proteins[loop % Settings.SYNTESIS_LOOPS][com - Settings.MORPHOGENES_COUNT] = MathU.clamp(proteins[loop % Settings.SYNTESIS_LOOPS][com - Settings.MORPHOGENES_COUNT] + intensity, 0, 1000);
             }
         }
-        if (max_v < 500) return true;
-        proteins[0][max_i] -= 500;
-        switch (max_i){
+    }
+
+    public boolean getCond(int cond, int param, int loop){
+        switch (cond){
             case 0:
-                dir = (dir + 1) % 8;
-                return false;
+                return organic >= param;
             case 1:
-                dir = (dir + 7) % 8;
-                return false;
+                return organic <= param;
             case 2:
-                dir = (dir + 4) % 8;
-                return false;
+                return salt >= param;
             case 3:
-                killBot();
-                return false;
+                return salt <= param;
             case 4:
-                moveBot();
-                return true;
+                return countEmptyCells() >= param / 112;
             case 5:
-                doubleBot();
-                return true;
+                return countEmptyCells() <= param / 112;
             case 6:
-                attackBot();
-                return true;
+                int tx = MathU.getTx(x, dir);
+                int ty = MathU.getTy(y, dir);
+                Bot other = World.bot_map[tx][ty];
+                if (other == null) return false;
+                return isRelative(other);
             case 7:
-                photosynthesisBot();
-                return true;
+                tx = MathU.getTx(x, dir);
+                ty = MathU.getTy(y, dir);
+                other = World.bot_map[tx][ty];
+                if (other == null) return false;
+                return !isRelative(other);
             case 8:
-                chemosynthesisBot();
-                return true;
-            case 10:
-                distributeResources();
-                return true;
+                tx = MathU.getTx(x, dir);
+                ty = MathU.getTy(y, dir);
+                return World.light_map[tx][ty] <= param;
             case 9:
-                produceEnergyBot();
+                tx = MathU.getTx(x, dir);
+                ty = MathU.getTy(y, dir);
+                return World.light_map[tx][ty] >= param;
+            case 10:
+                tx = MathU.getTx(x, dir);
+                ty = MathU.getTy(y, dir);
+                return World.organic_map[tx][ty] <= param;
+            case 11:
+                tx = MathU.getTx(x, dir);
+                ty = MathU.getTy(y, dir);
+                return World.organic_map[tx][ty] >= param;
+            case 12:
+                tx = MathU.getTx(x, dir);
+                ty = MathU.getTy(y, dir);
+                return World.salt_map[tx][ty] <= param;
+            case 13:
+                tx = MathU.getTx(x, dir);
+                ty = MathU.getTy(y, dir);
+                return World.salt_map[tx][ty] >= param;
+            default:
+                if (cond < 14 + Settings.MORPHOGENES_COUNT){
+                    return World.morphogenes_map[x][y][cond - 14] <= param / 32;
+                }
+                if (cond < 14 + 2 * Settings.MORPHOGENES_COUNT){
+                    return World.morphogenes_map[x][y][cond - 14 - Settings.MORPHOGENES_COUNT] >= param / 32;
+                }
+                if (cond < 14 + 2 * Settings.MORPHOGENES_COUNT + Settings.PROTEINS_COUNT) {
+                    return proteins[(loop - 1) % Settings.SYNTESIS_LOOPS][cond - 14 - 2 * Settings.MORPHOGENES_COUNT] <= param;
+                }
+                if (cond < 14 + 2 * Settings.MORPHOGENES_COUNT + 2 * Settings.PROTEINS_COUNT) {
+                    return proteins[(loop - 1) % Settings.SYNTESIS_LOOPS][cond - 14 - 2 * Settings.MORPHOGENES_COUNT - Settings.PROTEINS_COUNT] >= param;
+                }
                 return true;
         }
-        return true;
+    }
+
+    public void doAction(int action, int param){
+        switch (action){
+            case 0:
+                dir = (dir + param) % 8;
+                break;
+            case 1:
+                moveBot();
+                break;
+            case 2:
+                attackBot();
+                break;
+            case 3:
+                doubleBot();
+                break;
+            case 4:
+                photosynthesisBot();
+                break;
+            case 5:
+                chemosynthesisBot();
+                break;
+            case 6:
+                distributeResources();
+                break;
+        }
     }
 
     public void killBot(){
         World.organic_map[x][y] = MathU.clamp(World.organic_map[x][y] + organic + 100, 0, 1000);
         World.salt_map[x][y] = MathU.clamp(World.salt_map[x][y] + salt, 0, 1000);
         World.bot_map[x][y] = null;
-    }
-
-    public void rotateToRelative(){
-        for (int d = 0; d < 8; d++){
-            int tx = MathU.getTx(x, (dir + d) % 8);
-            int ty = MathU.getTy(y, (dir + d) % 8);
-            Bot bot = World.bot_map[tx][ty];
-            if (bot == null) {
-                dir = (dir + d) % 8;
-                break;
-            }
-            if (isRelative(bot)) {
-                dir = (dir + d) % 8;
-                break;
-            }
-        }
-    }
-
-    public void rotateToNotRelative(){
-        for (int d = 0; d < 8; d++){
-            int tx = MathU.getTx(x, (dir + d) % 8);
-            int ty = MathU.getTy(y, (dir + d) % 8);
-            Bot bot = World.bot_map[tx][ty];
-            if (bot == null) {
-                dir = (dir + d) % 8;
-                break;
-            }
-            if (!isRelative(bot)) {
-                dir = (dir + d) % 8;
-                break;
-            }
-        }
-    }
-
-    public void rotateToMaxLight(){
-        int max_l = -1, n_dir = -1;
-        for (int d = 0; d < 8; d++){
-            int tx = MathU.getTx(x, (dir + d) % 8);
-            int ty = MathU.getTy(y, (dir + d) % 8);
-            if (World.bot_map[tx][ty] != null) continue;
-            if (World.light_map[tx][ty] > max_l) {
-                max_l = World.light_map[tx][ty];
-                n_dir = (dir + d) % 8;
-            }
-        }
-        if (n_dir != -1) dir = n_dir;
-    }
-
-    public void rotateToMaxSalt(){
-        int max_s = -1, n_dir = -1;
-        for (int d = 0; d < 8; d++){
-            int tx = MathU.getTx(x, (dir + d) % 8);
-            int ty = MathU.getTy(y, (dir + d) % 8);
-            if (World.bot_map[tx][ty] != null) continue;
-            if (World.salt_map[tx][ty] > max_s) {
-                max_s = World.salt_map[tx][ty];
-                n_dir = (dir + d) % 8;
-            }
-        }
-        if (n_dir != -1) dir = n_dir;
     }
 
     public void moveBot(){
@@ -283,7 +205,7 @@ public class Bot {
         if (doub_dir == 8) return;
         int tx = MathU.getTx(x, doub_dir);
         int ty = MathU.getTy(y, doub_dir);
-        Bot new_bot = new Bot(tx, ty, doub_dir, energy / 2, organic / 2, salt / 2, genome);
+        Bot new_bot = new Bot(tx, ty, doub_dir, energy / 2, organic / 2, salt / 2, genome, proteins[0]);
         World.bot_map[tx][ty] = new_bot;
         if (RandU.getRandint(0, 1001, tx, ty) <= World.mutation_probably) new_bot.genome.mutate(tx, ty);
         energy -= energy / 2;
@@ -340,11 +262,21 @@ public class Bot {
 
     public int findEmptyDir(){
         for (int i = 0; i < 8; i++){
-            int tx = MathU.getTx(x, (dir + i) % 8);
-            int ty = MathU.getTy(y, (dir + i) % 8);
-            if (World.bot_map[tx][ty] == null) return (dir + i) % 8;
+            int tx = MathU.getTx(x, (i * 3 + 5) % 8);
+            int ty = MathU.getTy(y, (i * 3 + 5) % 8);
+            if (World.bot_map[tx][ty] == null) return (i * 3 + 5) % 8;
         }
         return 8;
+    }
+
+    public int countEmptyCells(){
+        int count = 0;
+        for (int i = 0; i < 8; i++){
+            int tx = MathU.getTx(x, i % 8);
+            int ty = MathU.getTy(y, i % 8);
+            if (World.bot_map[tx][ty] == null) count++;
+        }
+        return count;
     }
 
     public boolean isRelative(Bot other){
