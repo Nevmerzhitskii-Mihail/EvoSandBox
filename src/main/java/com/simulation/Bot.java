@@ -1,22 +1,15 @@
 package com.simulation;
 
-import com.Main;
 import com.utils.MathU;
 import com.utils.RandU;
-import javafx.util.Pair;
 
 public class Bot {
-    public static final int PROTEINS_COUNT = 50;
-    public static final int SYNTESIS_LOOPS = 2;
-
     public int x, y;
     public int dir;
     public int energy;
     public int organic;
     public int salt;
     public int age;
-    public int[] efficiency = new int[]{333, 333, 333};
-    public int[][] proteins = new int[SYNTESIS_LOOPS][PROTEINS_COUNT];
 
     public Genome genome;
     public int redC = 128, greenC = 128, blueC = 128;
@@ -24,16 +17,16 @@ public class Bot {
     public Bot(int x, int y, int dir, int energy, int organic, int salt, Genome parent){
         this.x = x; this.y = y; this.dir = dir;
         this.energy = energy; this.organic = organic; this.salt = salt;
-        genome = new Genome(parent);
+        genome = parent.copy();
         age = 0;
     }
 
     public void step(){
         collectOrganic();
         collectSalt();
-        for (int i = 0; i < SYNTESIS_LOOPS; i++) proteinsSynthesis(i + 1);
-        for (int i = 0; i < 3; i++) {
-            if (doAction()) break;
+        for (int i = 0; i < 10; i++){
+            int action = genome.get_action(this);
+            if (doAction(action)) break;
         }
         if (energy <= 0 || age >= 1000) {killBot(); return;}
         energy--;
@@ -62,208 +55,39 @@ public class Bot {
         }
     }
 
-    public void proteinsSynthesis(int loop){
-        System.arraycopy(proteins[(loop - 1) % SYNTESIS_LOOPS], 0, proteins[loop % SYNTESIS_LOOPS], 0, PROTEINS_COUNT);
-        for (int i = 0; i < PROTEINS_COUNT; i++) proteins[loop % SYNTESIS_LOOPS][i] = MathU.clamp(proteins[loop % SYNTESIS_LOOPS][i] - 50, 0, 1000);
-        for (int i = 0; i < genome.size(); i++){
-            boolean cond1 = getOuterCond(genome.get(i, 0), genome.get(i, 1));
-            boolean cond2 = getInnerCond(genome.get(i, 2), genome.get(i, 3), loop);
-            boolean cond3 = getInnerCond(genome.get(i, 4), genome.get(i, 5), loop);
-            if (cond1 && cond2 && cond3) proteins[loop % SYNTESIS_LOOPS][genome.get(i, 6) % PROTEINS_COUNT] = MathU.clamp(proteins[loop % SYNTESIS_LOOPS][genome.get(i, 6) % PROTEINS_COUNT] + genome.get(i, 7), 0, 1000);
-        }
-    }
-
-    public boolean getOuterCond(int value, int param){
-        switch (value){
-            case 0:
-                int tx = MathU.getTx(x, (dir + param) % 8), ty = MathU.getTy(y, (dir + param) % 8);
-                return World.bot_map[tx][ty] == null;
-            case 1:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                return World.bot_map[tx][ty] != null;
-            case 2:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return isRelative(World.bot_map[tx][ty]);
-            case 3:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return !isRelative(World.bot_map[tx][ty]);
-            case 4:
-                return energy >= param;
-            case 5:
-                return energy <= param;
-            case 6:
-                return organic >= param;
-            case 7:
-                return organic <= param;
-            case 8:
-                return salt >= param;
-            case 9:
-                return salt <= param;
-            case 10:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return true;
-                return World.bot_map[tx][ty].energy <= energy;
-            case 11:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return World.bot_map[tx][ty].energy >= energy;
-            case 12:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return true;
-                return World.bot_map[tx][ty].organic <= organic;
-            case 13:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return World.bot_map[tx][ty].organic >= organic;
-            case 14:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return true;
-                return World.bot_map[tx][ty].salt <= salt;
-            case 15:
-                tx = MathU.getTx(x, (dir + param) % 8); ty = MathU.getTy(y, (dir + param) % 8);
-                if (World.bot_map[tx][ty] == null) return false;
-                return World.bot_map[tx][ty].salt >= salt;
-            case 16:
-                return World.light_map[x][y] >= param;
-            case 17:
-                return World.light_map[x][y] <= param;
-            case 18:
-                return World.organic_map[x][y] >= param;
-            case 19:
-                return World.organic_map[x][y] <= param;
-            case 20:
-                return World.salt_map[x][y] >= param;
-            case 21:
-                return World.salt_map[x][y] <= param;
-            case 22:
-                return ((dir - param) % 8 + 8) % 8 == 0;
-            case 23:
-                return ((dir - param) % 8 + 8) % 8 != 0;
-            default:
-                return true;
-        }
-    }
-
-    public boolean getInnerCond(int cond, int param, int loop){
-        if (cond < PROTEINS_COUNT) return proteins[(loop - 1) % SYNTESIS_LOOPS][cond] >= param;
-        if (cond < 2 * PROTEINS_COUNT) return proteins[(loop - 1) % SYNTESIS_LOOPS][cond - PROTEINS_COUNT] <= param;
-        return param <= 500;
-    }
-
-    public boolean doAction(){
-        int max_v = -1, max_i = -1;
-        for (int i = 0; i < 11; i++){
-            if (proteins[0][i] > max_v){
-                max_v = proteins[0][i];
-                max_i = i;
-            }
-        }
-        if (max_v < 500) return true;
-        proteins[0][max_i] -= 500;
-        switch (max_i){
+    public boolean doAction(int action){
+        switch (action){
             case 0:
                 dir = (dir + 1) % 8;
                 return false;
             case 1:
-                dir = (dir + 7) % 8;
-                return false;
-            case 2:
-                dir = (dir + 4) % 8;
-                return false;
-            case 3:
-                killBot();
-                return false;
-            case 4:
                 moveBot();
                 return true;
-            case 5:
+            case 2:
                 doubleBot();
                 return true;
-            case 6:
+            case 3:
                 attackBot();
                 return true;
-            case 7:
+            case 4:
                 photosynthesisBot();
                 return true;
-            case 8:
+            case 5:
                 chemosynthesisBot();
                 return true;
-            case 10:
+            case 6:
                 distributeResources();
                 return true;
-            case 9:
+            case 7:
                 produceEnergyBot();
-                return true;
         }
-        return true;
+        return false;
     }
 
     public void killBot(){
         World.organic_map[x][y] = MathU.clamp(World.organic_map[x][y] + organic + 100, 0, 1000);
         World.salt_map[x][y] = MathU.clamp(World.salt_map[x][y] + salt, 0, 1000);
         World.bot_map[x][y] = null;
-    }
-
-    public void rotateToRelative(){
-        for (int d = 0; d < 8; d++){
-            int tx = MathU.getTx(x, (dir + d) % 8);
-            int ty = MathU.getTy(y, (dir + d) % 8);
-            Bot bot = World.bot_map[tx][ty];
-            if (bot == null) {
-                dir = (dir + d) % 8;
-                break;
-            }
-            if (isRelative(bot)) {
-                dir = (dir + d) % 8;
-                break;
-            }
-        }
-    }
-
-    public void rotateToNotRelative(){
-        for (int d = 0; d < 8; d++){
-            int tx = MathU.getTx(x, (dir + d) % 8);
-            int ty = MathU.getTy(y, (dir + d) % 8);
-            Bot bot = World.bot_map[tx][ty];
-            if (bot == null) {
-                dir = (dir + d) % 8;
-                break;
-            }
-            if (!isRelative(bot)) {
-                dir = (dir + d) % 8;
-                break;
-            }
-        }
-    }
-
-    public void rotateToMaxLight(){
-        int max_l = -1, n_dir = -1;
-        for (int d = 0; d < 8; d++){
-            int tx = MathU.getTx(x, (dir + d) % 8);
-            int ty = MathU.getTy(y, (dir + d) % 8);
-            if (World.bot_map[tx][ty] != null) continue;
-            if (World.light_map[tx][ty] > max_l) {
-                max_l = World.light_map[tx][ty];
-                n_dir = (dir + d) % 8;
-            }
-        }
-        if (n_dir != -1) dir = n_dir;
-    }
-
-    public void rotateToMaxSalt(){
-        int max_s = -1, n_dir = -1;
-        for (int d = 0; d < 8; d++){
-            int tx = MathU.getTx(x, (dir + d) % 8);
-            int ty = MathU.getTy(y, (dir + d) % 8);
-            if (World.bot_map[tx][ty] != null) continue;
-            if (World.salt_map[tx][ty] > max_s) {
-                max_s = World.salt_map[tx][ty];
-                n_dir = (dir + d) % 8;
-            }
-        }
-        if (n_dir != -1) dir = n_dir;
     }
 
     public void moveBot(){
@@ -351,7 +175,7 @@ public class Bot {
         int dr = other.genome.family.getRed() - genome.family.getRed();
         int dg = other.genome.family.getGreen() - genome.family.getGreen();
         int db = other.genome.family.getBlue() - genome.family.getBlue();
-        return Math.abs(dr) + Math.abs(dg) + Math.abs(db) < 900;
+        return Math.abs(dr) + Math.abs(dg) + Math.abs(db) < 30;
     }
 
     private void addRed(int d){

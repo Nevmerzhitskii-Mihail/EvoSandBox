@@ -28,7 +28,7 @@ public class Drawer {
     public static JButton generate = new JButton("Generate");
     public static JTextField seed_field = new JTextField();
     public static JButton stop = new JButton("Start");
-    public static JComboBox drawing = new JComboBox(new String[]{"Family", "Predators", "Energy", "Organic", "Salt", "Age"});
+    public static JComboBox drawing = new JComboBox(new String[]{"Family", "Predators", "Energy", "Organic", "Salt", "Age", "Genome type"});
     public static JComboBox background = new JComboBox(new String[]{"Light", "Organic", "Salt"});
 
     public static void init(int width, int height, int tile){
@@ -139,6 +139,9 @@ public class Drawer {
                 break;
             case 5:
                 g.setColor(MathU.lerp(bot.age, new Color(0x24250F), new Color(0x7337D5)));
+                break;
+            case 6:
+                g.setColor(bot.genome.mind_type);
         }
         g.fillRect(x * tile, y * tile, tile, tile);
     }
