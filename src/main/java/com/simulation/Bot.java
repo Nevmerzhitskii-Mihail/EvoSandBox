@@ -24,7 +24,7 @@ public class Bot {
     public void step(){
         collectOrganic();
         collectSalt();
-        for (int i = 0; i < 10; i++){
+        for (int i = 0; i < genome.repeat; i++){
             int action = genome.get_action(this);
             if (doAction(action)) break;
         }

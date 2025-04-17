@@ -19,6 +19,7 @@ public class Genome_CPU extends Genome {
         mind = new int[GENOME_SIZE];
         family = new Color(RandU.getRandint(0, 255), RandU.getRandint(0, 255), RandU.getRandint(0, 255));
         mind_type = new Color(0x235DC9);
+        repeat = 10;
         for (int i = 0; i < GENOME_SIZE; i++) mind[i] = RandU.getRandint(0, 64);
     }
 
@@ -27,6 +28,7 @@ public class Genome_CPU extends Genome {
         mind = new int[GENOME_SIZE];
         this.family = new Color(family.getRGB());
         mind_type = new Color(0x235DC9);
+        repeat = 10;
         System.arraycopy(parent, 0, mind, 0, GENOME_SIZE);
     }
 

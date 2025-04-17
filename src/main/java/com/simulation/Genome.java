@@ -9,6 +9,7 @@ import java.util.ArrayList;
 public abstract class Genome {
     public Color family; // "Натуральный" цвет бота (используется при определении родственников)
     public Color mind_type; // Индикатор типа генома
+    public int repeat;
 
     // Копирование генома
     public abstract Genome copy();

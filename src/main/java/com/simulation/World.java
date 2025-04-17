@@ -2,6 +2,7 @@ package com.simulation;
 
 import com.Main;
 import com.simulation.genomes.Genome_CPU;
+import com.simulation.genomes.Genome_Neuron;
 import com.simulation.multiprocessing.Solver;
 import com.utils.MathU;
 import com.utils.RandU;
@@ -42,8 +43,8 @@ public class World{
         for (int i = 0; i < 4000; i++){
             int x = RandU.getRandint(0, width);
             int y = RandU.getRandint(0, height);
-            // TODO: Добавить создание генома
-            bot_map[x][y] = new Bot(x, y, RandU.getRandint(0, 8), 300, 300, 0, new Genome_CPU());
+
+            bot_map[x][y] = new Bot(x, y, RandU.getRandint(0, 8), 300, 300, 0, RandU.getRandint(0, 100) <= 10 ? new Genome_CPU() : new Genome_Neuron());
         }
     }
 
